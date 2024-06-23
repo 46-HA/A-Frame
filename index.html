@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive A-Frame Site</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v6.1.0/dist/aframe-extras.min.js"></script>
+</head>
+<body>
+    <a-scene>
+        <!-- Rotating Box -->
+        <a-box position="-1 0.5 -3" rotation="0 45 0" color="#4CC3D9" 
+               animation="property: rotation; to: 0 405 0; loop: true; dur: 3000"></a-box>
+
+        <!-- Interactive Text -->
+        <a-text value="Press 'i' to spawn objects, 'q'/'e' to move camera up/down, arrow keys to move the last spawned object" position="-1 2.5 -3" rotation="0 45 0" scale="2 2 2"
+                event-set__enter="_event: mouseenter; scale: 2.5 2.5 2.5"
+                event-set__leave="_event: mouseleave; scale: 2 2 2"
+                animation__click="property: rotation; to: 0 360 0; dur: 500; startEvents: click"></a-text>
+
+        <!-- 360-degree Image Background -->
+        <a-sky src="panda.png" rotation="0 -130 0"></a-sky>
+
+        <!-- Camera with WASD Controls -->
+        <a-entity id="cameraRig" position="0 1.6 0">
+            <a-entity camera look-controls wasd-controls></a-entity>
+        </a-entity>
+
+        <script>
+            // Function to spawn objects in front of the camera
+            function spawnObjectInFrontOfCamera() {
+                // Get the camera's position and orientation
+                const cameraEl = document.querySelector('[camera]');
+                const cameraPosition = cameraEl.getAttribute('position');
+                const cameraRotation = cameraEl.getAttribute('rotation');
+
+                // Calculate position in front of the camera
+                const spawnDistance = -5; // Distance from camera
+                const x = cameraPosition.x + spawnDistance * Math.sin(THREE.Math.degToRad(cameraRotation.y));
+                const y = cameraPosition.y;
+                const z = cameraPosition.z + spawnDistance * Math.cos(THREE.Math.degToRad(cameraRotation.y));
+
+                // Create a new object (you can change this to any A-Frame entity)
+                const newObject = document.createElement('a-sphere');
+                newObject.setAttribute('position', `${x} ${y} ${z}`);
+                newObject.setAttribute('radius', '0.5');
+                newObject.setAttribute('color', '#FFA500');
+
+                // Add the object to the scene
+                document.querySelector('a-scene').appendChild(newObject);
+            }
+
+            // Smooth camera movement variables
+            let moveInterval = null;
+            const moveStep = 0.01; // Adjust this value for speed of movement
+
+            // Function to move camera smoothly up
+            function moveCameraUp() {
+                const cameraEl = document.querySelector('[camera]');
+                moveInterval = setInterval(() => {
+                    const currentPosition = cameraEl.getAttribute('position');
+                    const newPosition = `${currentPosition.x} ${parseFloat(currentPosition.y) + moveStep} ${currentPosition.z}`;
+                    cameraEl.setAttribute('position', newPosition);
+                }, 10); // Adjust interval for smoother movement
+            }
+
+            // Function to move camera smoothly down
+            function moveCameraDown() {
+                const cameraEl = document.querySelector('[camera]');
+                moveInterval = setInterval(() => {
+                    const currentPosition = cameraEl.getAttribute('position');
+                    const newPosition = `${currentPosition.x} ${parseFloat(currentPosition.y) - moveStep} ${currentPosition.z}`;
+                    cameraEl.setAttribute('position', newPosition);
+                }, 10); // Adjust interval for smoother movement
+            }
+
+            // Event listener for keyboard events
+            document.addEventListener('keydown', function(event) {
+                // Check if the 'i' key is pressed
+                if (event.key === 'i') {
+                    spawnObjectInFrontOfCamera();
+                }
+                // Check if the 'q' key is pressed
+                else if (event.key === 'q') {
+                    // Move camera up smoothly
+                    clearInterval(moveInterval); // Clear any previous intervals
+                    moveCameraUp();
+                }
+                // Check if the 'e' key is pressed
+                else if (event.key === 'e') {
+                    // Move camera down smoothly
+                    clearInterval(moveInterval); // Clear any previous intervals
+                    moveCameraDown();
+                }
+                // Check arrow key presses
+                else if (event.key.startsWith('Arrow')) {
+                    // Move the last spawned object
+                    const lastObject = document.querySelector('a-sphere:last-of-type');
+                    if (lastObject) {
+                        const currentPosition = lastObject.getAttribute('position');
+                        let deltaX = 0, deltaY = 0, deltaZ = 0;
+                        
+                        // Adjust position based on arrow keys
+                        switch (event.key) {
+                            case 'ArrowUp':
+                                deltaY = 0.1;
+                                break;
+                            case 'ArrowDown':
+                                deltaY = -0.1;
+                                break;
+                            case 'ArrowLeft':
+                                deltaX = -0.1;
+                                break;
+                            case 'ArrowRight':
+                                deltaX = 0.1;
+                                break;
+                        }
+
+                        // Calculate new position
+                        const newPosition = `${parseFloat(currentPosition.x) + deltaX} ${parseFloat(currentPosition.y) + deltaY} ${parseFloat(currentPosition.z) + deltaZ}`;
+                        lastObject.setAttribute('position', newPosition);
+                    }
+
+                    // Prevent default arrow key behavior (e.g., scrolling)
+                    event.preventDefault();
+                }
+            });
+
+            // Stop camera movement on key release
+            document.addEventListener('keyup', function(event) {
+                if (event.key === 'q' || event.key === 'e') {
+                    clearInterval(moveInterval);
+                }
+            });
+        </script>
+    </a-scene>
+</body>
+</html>
